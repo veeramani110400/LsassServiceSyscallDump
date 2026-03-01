@@ -13,16 +13,16 @@ This technique combines two evasion layers:
 2. **Direct syscall + manual MDMP writer** — Instead of calling hooked APIs like `MiniDumpWriteDump` or `NtReadVirtualMemory`, the DLL maps a **clean copy of ntdll.dll from disk**, extracts the System Service Number (SSN) for `NtReadVirtualMemory`, builds a raw `syscall` stub in executable memory, and uses it to read LSASS memory directly. The dump is written in MDMP format manually — no dependency on `dbghelp.dll`.
 
 ```
-┌─────────────────┐    creates     ┌──────────────────────────────────┐
-│ SvchostLoader    │───registry───>│ HKLM\Services\CredDumpSvc        │
-│ (admin console)  │   + group     │   Type=0x20 (SHARE_PROCESS)      │
-│                  │               │   Parameters\ServiceDll=our.dll  │
-└────────┬────────┘               └──────────────────────────────────┘
+┌─────────────────┐    creates     ┌────────────────────────────────┐
+│ SvchostLoader   │ ───registry───>│  HKLM\Services\CredDumpSvc     │
+│ (admin console) │     + group    │  Type=0x20 (SHARE_PROCESS)     │
+│                 │                │  Parameters\ServiceDll=our.dll │
+└────────┬────────┘                └────────────────────────────────┘
          │ starts via SCM
          ▼
 ┌────────────────────────────────┐ OpenProcess  ┌───────────┐
-│ svchost.exe -k CredDiagGroup   │────────────>│ lsass.exe  │
-│  └─ SvcSyscallDll.dll          │  (trusted!)  │  PID 908   │
+│ svchost.exe -k CredDiagGroup   │────────────> │ lsass.exe │
+│  └─ SvcSyscallDll.dll          │  (trusted!)  │  PID 908  │
 │     ServiceMain()              │              └───────────┘
 │       │                        │
 │       │ 1. Map clean ntdll.dll │
